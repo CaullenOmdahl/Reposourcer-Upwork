@@ -1,4 +1,5 @@
 <script>
+    import "../app.css";
     import { onMount } from "svelte";
     import SearchForm from './_components/SearchForm.svelte';
     import StargazerTable from './_components/StargazerTable.svelte';
