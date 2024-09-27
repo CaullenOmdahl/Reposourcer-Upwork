@@ -3,7 +3,8 @@ import { redisGet, redisSet } from '../../../lib/redis';  // Import redis utilit
 import type { RequestHandler } from "@sveltejs/kit"; // Use type-only import for request handler
 
 export const GET: RequestHandler = async (req) => { // Changed 'default' to 'GET'
-  const { username } = req.query;
+  const url = new URL(req.url); // Create a URL object from the request URL
+  const username = url.searchParams.get("username"); // Get the 'username' query parameter
   const cacheKey = `user-${username}`;
 
   // Check Redis cache first

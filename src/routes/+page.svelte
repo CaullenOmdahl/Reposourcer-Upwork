@@ -48,6 +48,18 @@
         return;
       }
 
+      // Assuming getOwnerAndRepo is a function that needs to be defined or imported
+      // Since it's not defined or imported, we'll define it here for demonstration
+      // This function extracts the owner and repository name from a given GitHub repository URL
+      function getOwnerAndRepo(url: string): { owner: string; repo: string } | null {
+        const regex = /github\.com\/([^\/]+)\/([^\/]+)/;
+        const match = url.match(regex);
+        if (match && match.length > 2) {
+          return { owner: match[1], repo: match[2] };
+        }
+        return null;
+      }
+
       const ownerAndRepo = getOwnerAndRepo(repoUrl);
       if (!ownerAndRepo) {
         console.error("Invalid repository URL format.");
