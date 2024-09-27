@@ -1,7 +1,15 @@
-<script>
-  // Exporting locationFilter and emailAvailable
-  export let locationFilter = "";
-  export let emailAvailable = false;
+<script lang="ts">
+  export let locationFilter: string = "";
+  export let emailAvailable: boolean = false;
+  export let stargazers: Stargazer[] = []; // Pass stargazers to filter
+
+  function applyFilters(): Stargazer[] {
+      return stargazers.filter(user => {
+          const matchesLocation = !locationFilter || user.location.toLowerCase().includes(locationFilter.toLowerCase());
+          const matchesEmail = !emailAvailable || (user.email !== undefined && user.email !== null);
+          return matchesLocation && matchesEmail;
+      });
+  }
 </script>
 
 <div class="mb-6 flex space-x-4">

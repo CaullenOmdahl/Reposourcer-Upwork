@@ -31,6 +31,8 @@
     let totalStargazers: number = 0; // Explicitly define as number
     let currentPage: number = 1; // Explicitly define as number
     let showApiKeyModal: boolean = false; // Explicitly define as boolean
+    let apiCallsRemaining: number = 5000; // Example initial value
+    let resetTime: string = "2023-10-01T00:00:00Z"; // Example reset time
   
     // Check if API key is in session storage
     onMount(() => {
@@ -73,6 +75,7 @@
         const data: Stargazer[] = await response.json();
         stargazers = data;
         filteredStargazers = stargazers;
+        apiCallsRemaining -= 1; // Decrement API calls remaining
       } catch (error) {
         console.error("Error fetching stargazers:", error);
       }
