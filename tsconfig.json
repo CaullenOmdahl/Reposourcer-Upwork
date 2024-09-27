@@ -10,7 +10,15 @@
 		"sourceMap": true,
 		"strict": true,
 		"moduleResolution": "bundler"
-	}
+	},
+	"include": [
+		"src/**/*.ts",
+		"src/**/*.js" // Ensure JavaScript files are included
+	],
+	"exclude": [
+		"node_modules",
+		"build"
+	]
 	// Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
 	// except $lib which is handled by https://kit.svelte.dev/docs/configuration#files
 	//
