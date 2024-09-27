@@ -1,10 +1,10 @@
-<script>
+<script lang="ts">
   // Exporting repoUrl and submit function to parent component
-  export let repoUrl = "";
-  export let submit;
+  export let repoUrl: string = ""; // Explicitly typed as string
+  export let submit: () => void; // Explicitly typed as a function that returns void
 
   // Handle form submission
-  function handleSubmit(event) {
+  function handleSubmit(event: Event): void { // Explicitly typed event and return type
       event.preventDefault(); // Prevent default form submission
       submit(); // Call the submit function passed from parent
   }

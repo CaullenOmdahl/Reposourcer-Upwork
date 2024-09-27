@@ -1,40 +1,56 @@
-<script>
+<script lang="ts">  // Added lang="ts" for TypeScript
     import "../app.css";
     import { onMount } from "svelte";
+    import type { SvelteComponentTyped } from "svelte";
     import SearchForm from './_components/SearchForm.svelte';
     import StargazerTable from './_components/StargazerTable.svelte';
     import Filters from './_components/Filters.svelte';
     import Pagination from './_components/Pagination.svelte';
     import ApiKeyModal from './_components/ApiKeyModal.svelte';  // Import the modal
   
-    let stargazers = [];
-    let filteredStargazers = [];
-    let locationFilter = '';
-    let emailAvailable = false;
-    let repoUrl = '';
-    let totalStargazers = 0;
-    let currentPage = 1;
-    let showApiKeyModal = false;
+    // Define a type for stargazer objects
+    type Stargazer = {
+        login: string; // Example property
+        location?: string; // Optional property
+        email?: string; // Optional property
+        avatar_url: string; // Add missing property
+        html_url: string; // Add missing property
+    };
+
+    // Define props for SearchForm
+    type SearchFormProps = {
+        repoUrl: string;
+        submit: () => void;
+    };
+
+    let stargazers: Stargazer[] = []; // Explicitly define the type
+    let filteredStargazers: Stargazer[] = []; // Explicitly define the type
+    let locationFilter: string = ""; // Explicitly define the type
+    let emailAvailable: boolean = false; // Explicitly define as boolean
+    let repoUrl: string = ''; // Explicitly define the type
+    let totalStargazers: number = 0; // Explicitly define as number
+    let currentPage: number = 1; // Explicitly define as number
+    let showApiKeyModal: boolean = false; // Explicitly define as boolean
   
     // Check if API key is in session storage
     onMount(() => {
-      const apiKey = sessionStorage.getItem("GITHUB_API_KEY");
+      const apiKey: string | null = sessionStorage.getItem("GITHUB_API_KEY");
       if (!apiKey) {
         showApiKeyModal = true;
       }
     });
   
     // Function to fetch stargazers from the serverless function
-    async function fetchStargazers() {
-      const apiKey = sessionStorage.getItem("GITHUB_API_KEY");
+    async function fetchStargazers(): Promise<void> {
+      const apiKey: string | null = sessionStorage.getItem("GITHUB_API_KEY");
       if (!apiKey) {
         showApiKeyModal = true;
         return;
       }
   
       try {
-        const response = await fetch(`/api/getStargazers?repo=${repoUrl}&page=${currentPage}&apiKey=${apiKey}`);
-        const data = await response.json();
+        const response: Response = await fetch(`/api/getStargazers?repo=${repoUrl}&page=${currentPage}&apiKey=${apiKey}`);
+        const data: Stargazer[] = await response.json();
         stargazers = data;
         filteredStargazers = stargazers;
       } catch (error) {
@@ -42,21 +58,21 @@
       }
     }
   
-    function handleApiKeySubmit() {
+    function handleApiKeySubmit(): void {
       showApiKeyModal = false;
       fetchStargazers();  // Fetch stargazers after the API key is submitted
     }
   
     // Function to apply filters
-    function applyFilters() {
-      filteredStargazers = stargazers.filter(user => {
-        const matchesLocation = !locationFilter || user.location?.toLowerCase().includes(locationFilter.toLowerCase());
-        const matchesEmail = !emailAvailable || user.email;
+    function applyFilters(): void {
+      filteredStargazers = stargazers.filter((user: Stargazer) => {
+        const matchesLocation: boolean = !locationFilter || (user.location?.toLowerCase().includes(locationFilter.toLowerCase()) ?? false);
+        const matchesEmail: boolean = !emailAvailable || (user.email !== undefined && user.email !== null);
         return matchesLocation && matchesEmail;
       });
     }
   
-    $: applyFilters();
+    $: applyFilters(); // Reactive statement to apply filters
   </script>
   
   <div class="container mx-auto px-4 py-6">
@@ -66,9 +82,12 @@
     {/if}
   
     <!-- Main Content (only shown when API key is set) -->
-    <SearchForm bind:repoUrl={repoUrl} on:submit={fetchStargazers} />
+    <SearchForm bind:repoUrl={repoUrl} on:submit={fetchStargazers} submit={fetchStargazers} />
     <Filters bind:locationFilter={locationFilter} bind:emailAvailable={emailAvailable} />
     <StargazerTable stargazers={filteredStargazers} />
-    <Pagination bind:currentPage={currentPage} total={totalStargazers} on:pageChange={fetchStargazers} />
+    <Pagination 
+        bind:currentPage={currentPage} 
+        total={totalStargazers} 
+        on:pageChange={fetchStargazers}
+        />
   </div>
-  

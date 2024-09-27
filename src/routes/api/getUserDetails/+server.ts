@@ -1,7 +1,8 @@
 import axios from 'axios';
-import { redisGet, redisSet } from '../../lib/redis';  // Import redis utility functions
+import { redisGet, redisSet } from '../../../lib/redis';  // Import redis utility functions
+import type { NextApiRequest, NextApiResponse } from "next"; // Use type-only import for request and response
 
-export default async (req, res) => {
+export default async (req: NextApiRequest, res: NextApiResponse) => { // Specify types for req and res
   const { username } = req.query;
   const cacheKey = `user-${username}`;
 

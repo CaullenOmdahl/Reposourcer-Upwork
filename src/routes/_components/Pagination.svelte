@@ -1,14 +1,14 @@
-<script>
+<script lang="ts"> // Specify TypeScript language
   // Exporting currentPage, total, and pageChange function
   export let currentPage = 1;
   export let total = 0;
-  export let pageChange;
+  export let pageChange: () => void; // Explicitly define the type of pageChange
 
   // Calculate total pages based on total items
   const totalPages = Math.ceil(total / 100);
 
   // Navigate to a specific page
-  function goToPage(page) {
+  function goToPage(page: number) { // Specify the type for page
       if (page < 1 || page > totalPages) return; // Prevent invalid page navigation
       currentPage = page; // Update current page
       pageChange(); // Trigger page change event

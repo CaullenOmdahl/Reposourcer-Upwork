@@ -1,13 +1,13 @@
-<script>
-    export let onSubmit;
-    let apiKey = "";
+<script lang="ts">
+    export let onSubmit: () => void;  // Define the type for onSubmit as a function
+    let apiKey: string = "";  // Explicitly define apiKey as a string
   
-    function handleSubmit(event) {
+    function handleSubmit(event: Event): void {  // Specify event type
       event.preventDefault();
       sessionStorage.setItem("GITHUB_API_KEY", apiKey);  // Store API key in session storage
       onSubmit();  // Call the submit function passed from parent
     }
-  </script>
+</script>
   
   <div class="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
     <div class="bg-white p-6 rounded shadow-md">
@@ -26,4 +26,3 @@
       </form>
     </div>
   </div>
-  
