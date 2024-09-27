@@ -10,6 +10,9 @@ export const GET: RequestHandler = async (req) => { // Changed 'default' to 'GET
   // Check Redis cache first
   const cachedUser = await redisGet(cacheKey);
   if (cachedUser) {
+    if (process.env.DEBUG === "TRUE") {
+      console.log("Cached User Data:", cachedUser);
+    }
     return new Response(JSON.stringify(cachedUser), { status: 200 });
   }
 
@@ -25,6 +28,11 @@ export const GET: RequestHandler = async (req) => { // Changed 'default' to 'GET
         },
       }
     );
+
+    // Log the fetched user data if DEBUG is TRUE
+    if (process.env.DEBUG === "TRUE") {
+      console.log("Fetched User Data:", response.data);
+    }
 
     // Save the user data to Redis (with a TTL of 1 hour)
     await redisSet(cacheKey, response.data, 3600);

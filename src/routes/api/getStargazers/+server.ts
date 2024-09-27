@@ -18,6 +18,9 @@ export const GET: RequestHandler = async ({ url }) => { // Changed 'get' to 'GET
 	// Check Redis cache first
 	const cachedStargazers = await redisGet(cacheKey);
 	if (cachedStargazers) {
+		if (process.env.DEBUG === "TRUE") {
+			console.log("Cached Stargazers Data:", cachedStargazers);
+		}
 		return new Response(JSON.stringify(cachedStargazers), { status: 200 });
 	}
 
@@ -36,10 +39,32 @@ export const GET: RequestHandler = async ({ url }) => { // Changed 'get' to 'GET
 			}
 		);
 
-		// Save the stargazers data to Redis (with a TTL of 1 hour)
-		await redisSet(cacheKey, response.data, 3600);
+		const stargazers = response.data;
 
-		return new Response(JSON.stringify(response.data), { status: 200 });
+		// Log the fetched stargazers data if DEBUG is TRUE
+		if (process.env.DEBUG === "TRUE") {
+			console.log("Fetched Stargazers Data:", stargazers);
+		}
+
+		// Ensure company is fetched correctly in fetchStargazers
+		const stargazers = response.data.map(stargazer => {
+			const userDetails = stargazer.user;
+			return {
+				...stargazer,
+				name: userDetails.name || "",
+				location: userDetails.location || "",
+				company: userDetails.company || "N/A", // Default to "N/A" if not available
+				twitter: userDetails.twitter_username || "",
+				website: userDetails.blog || "",
+				email: userDetails.email || "",
+				total_stars: stargazer.total_stars || 0,
+			};
+		});
+
+		// Save the stargazers data to Redis (with a TTL of 1 hour)
+		await redisSet(cacheKey, stargazers, 3600);
+
+		return new Response(JSON.stringify(stargazers), { status: 200 });
 	} catch (error) {
 		console.error('Error fetching stargazers:', error);
 		return new Response(JSON.stringify({ error: 'Error fetching stargazers' }), { status: 500 });
