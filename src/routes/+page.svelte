@@ -10,11 +10,16 @@
   
     // Define a type for stargazer objects
     type Stargazer = {
-        login: string; // Example property
-        location?: string; // Optional property
-        email?: string; // Optional property
-        avatar_url: string; // Add missing property
-        html_url: string; // Add missing property
+        avatar_url: string;
+        login: string;
+        html_url: string;
+        name: string;
+        location: string;
+        company: string;
+        total_stars: number; // Ensure this is included
+        twitter: string;
+        website: string;
+        email: string;
     };
 
     // Define props for SearchForm
@@ -23,10 +28,10 @@
         submit: () => void;
     };
 
-    let stargazers: Stargazer[] = []; // Explicitly define the type
+    let stargazers: Stargazer[] = []; // Change from const to let
     let filteredStargazers: Stargazer[] = []; // Explicitly define the type
-    let locationFilter: string = ""; // Explicitly define the type
-    let emailAvailable: boolean = false; // Explicitly define as boolean
+    let locationFilter: string = ""; // Ensure this is defined as string
+    let emailAvailable: boolean = false; // Ensure this is defined as boolean
     let repoUrl: string = ''; // Explicitly define the type
     let totalStargazers: number = 0; // Explicitly define as number
     let currentPage: number = 1; // Explicitly define as number
@@ -72,9 +77,31 @@
 
       try {
         const response: Response = await fetch(`/api/getStargazers?owner=${owner}&repo=${repo}&page=${currentPage}&apiKey=${apiKey}`);
-        const data: Stargazer[] = await response.json();
-        stargazers = data;
-        filteredStargazers = stargazers;
+        const stargazers: Stargazer[] = await response.json();
+
+        // Fetch additional user details for each stargazer
+        const detailedStargazers = await Promise.all(stargazers.map(async (stargazer) => {
+          const userResponse = await fetch(`https://api.github.com/users/${stargazer.login}`, {
+            headers: {
+              Authorization: `token ${apiKey}`,
+            },
+          });
+          const userDetails = await userResponse.json();
+          return {
+            ...stargazer,
+            name: userDetails.name || "",
+            location: userDetails.location || "",
+            company: userDetails.company || "",
+            twitter: userDetails.twitter_username || "",
+            website: userDetails.blog || "", // Corrected line
+            email: userDetails.email || "",
+            total_stars: stargazer.total_stars || 0, // Ensure this is defined
+          };
+        }));
+
+        // Correctly assign detailed stargazers to the stargazers variable
+        stargazers = detailedStargazers; // Ensure stargazers is defined as let
+        filteredStargazers = stargazers; // Assign to filteredStargazers
         apiCallsRemaining -= 1; // Decrement API calls remaining
       } catch (error) {
         console.error("Error fetching stargazers:", error);
@@ -99,6 +126,9 @@
   </script>
   
   <div class="container mx-auto px-4 py-6">
+    <div class="mb-4 text-sm text-gray-400">
+        Remaining API Calls: {apiCallsRemaining}
+    </div>
     {#if showApiKeyModal}
       <!-- API Key Modal -->
       <ApiKeyModal onSubmit={handleApiKeySubmit} />
