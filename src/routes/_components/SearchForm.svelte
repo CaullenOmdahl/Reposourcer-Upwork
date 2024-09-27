@@ -8,6 +8,15 @@
       event.preventDefault(); // Prevent default form submission
       submit(); // Call the submit function passed from parent
   }
+
+  // Function to extract owner and repo from the repoUrl
+  function getOwnerAndRepo(url: string): { owner: string; repo: string } | null {
+      const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+      if (match) {
+          return { owner: match[1], repo: match[2] };
+      }
+      return null; // Return null if the format is incorrect
+  }
 </script>
 
 <form class="mb-6" on:submit={handleSubmit}>

@@ -47,9 +47,17 @@
         showApiKeyModal = true;
         return;
       }
-  
+
+      const ownerAndRepo = getOwnerAndRepo(repoUrl);
+      if (!ownerAndRepo) {
+        console.error("Invalid repository URL format.");
+        return;
+      }
+
+      const { owner, repo } = ownerAndRepo;
+
       try {
-        const response: Response = await fetch(`/api/getStargazers?repo=${repoUrl}&page=${currentPage}&apiKey=${apiKey}`);
+        const response: Response = await fetch(`/api/getStargazers?owner=${owner}&repo=${repo}&page=${currentPage}&apiKey=${apiKey}`);
         const data: Stargazer[] = await response.json();
         stargazers = data;
         filteredStargazers = stargazers;
