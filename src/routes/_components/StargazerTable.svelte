@@ -157,6 +157,10 @@
                         {#if user.instagram}
                             <a href={user.instagram} target="_blank" aria-label="Instagram">
                                 <svg class="w-6 h-6 text-gray-800 dark:text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                                </svg> <!-- Ensure this SVG is properly closed -->
+                            </a>
+                        {/if}
 <script lang="ts">
     // Define a type for the stargazer user
     type Stargazer = {

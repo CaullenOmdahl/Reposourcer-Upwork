@@ -39,7 +39,10 @@ export const GET: RequestHandler = async ({ url }) => { // Changed 'get' to 'GET
 			}
 		);
 
-		const stargazers = response.data;
+		// Check if stargazers is already declared
+		if (typeof stargazers === "undefined") {
+			const stargazers = response.data; // Declare stargazers only if not already declared
+		}
 
 		// Log the fetched stargazers data if DEBUG is TRUE
 		if (process.env.DEBUG === "TRUE") {
