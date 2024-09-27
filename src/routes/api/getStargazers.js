@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { redisGet, redisSet } from './redis';  // Redis functions for caching
+import { redisGet, redisSet } from '../../lib/redis';  // Redis functions for caching
 
 export default async (req, res) => {
   const { owner, repo, page = 1, apiKey } = req.query;  // Retrieve apiKey from the query params

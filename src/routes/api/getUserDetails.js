@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { redisGet, redisSet } from './redis';  // Import redis utility functions
+import { redisGet, redisSet } from '../../lib/redis';  // Import redis utility functions
 
 export default async (req, res) => {
   const { username } = req.query;
