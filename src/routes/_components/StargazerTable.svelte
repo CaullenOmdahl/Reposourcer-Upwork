@@ -48,6 +48,20 @@
         document.body.appendChild(link);
         link.click();
     }
+
+    function downloadAllCSV(): void {
+        const csvContent = "data:text/csv;charset=utf-8," + 
+            stargazers.map(user => {
+                return `${user.login},${user.name},${user.location},${user.company},${user.total_stars},${user.twitter},${user.website},${user.email}`;
+            }).join("\n");
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "all_stargazers.csv");
+        document.body.appendChild(link);
+        link.click();
+    }
 </script>
 
 <div class="overflow-x-auto">
@@ -70,7 +84,7 @@
             {#each stargazers as user}
                 <tr on:click={() => toggleSelect(user.login)}>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <input type="checkbox" checked={selectedStargazers.has(user.login)} />
+                        <input type="checkbox" checked={selectedStargazers.has(user.login)} on:change={() => toggleSelect(user.login)} />
                         <img src={user.avatar_url} alt={user.login} class="h-10 w-10 rounded-full" />
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -78,10 +92,10 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">{user.name}</td>
                     <td class="px-6 py-4 whitespace-nowrap">{user.location}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">{user.company}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">{user.company || "N/A"}</td>
                     <td class="px-6 py-4 whitespace-nowrap">{user.total_stars}</td>
                     <td class="px-6 py-4 whitespace-nowrap"><a href={user.twitter} target="_blank">Twitter</a></td>
-                    <td class="px-6 py-4 whitespace-nowrap"><a href={user.website} target="_blank">Website</a></td>
+                    <td class="px-6 py-4 whitespace-nowrap"><a href={user.website} target="_blank">{user.website}</a></td>
                     <td class="px-6 py-4 whitespace-nowrap">{user.email}</td>
                 </tr>
             {/each}

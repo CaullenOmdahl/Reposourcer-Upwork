@@ -1,38 +1,20 @@
 <script lang="ts">
-  export let locationFilter: string = "";
-  export let emailAvailable: boolean = false;
-  export let stargazers: Stargazer[] = []; // Pass stargazers to filter
+    import { createEventDispatcher } from "svelte"; // Import the dispatcher
 
-  function applyFilters(): Stargazer[] {
-      return stargazers.filter(user => {
-          const matchesLocation = !locationFilter || user.location.toLowerCase().includes(locationFilter.toLowerCase());
-          const matchesEmail = !emailAvailable || (user.email !== undefined && user.email !== null);
-          return matchesLocation && matchesEmail;
-      });
-  }
+    const dispatch = createEventDispatcher(); // Create the dispatcher
+
+    let locationFilter = '';
+    let emailFilter = false;
+
+    const applyFilters = () => {
+        dispatch("filterChange", { locationFilter, emailFilter });
+    };
 </script>
 
-<div class="mb-6 flex space-x-4">
-  <!-- Location Filter -->
-  <div>
-      <label for="location" class="block text-sm font-medium text-gray-700">Filter by Location</label>
-      <input
-          id="location"
-          type="text"
-          bind:value={locationFilter}
-          placeholder="Enter location"
-          class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-      />
-  </div>
-
-  <!-- Email Availability Filter -->
-  <div class="flex items-center mt-6">
-      <label for="emailAvailable" class="mr-2 text-sm font-medium text-gray-700">Email Available</label>
-      <input
-          id="emailAvailable"
-          type="checkbox"
-          bind:checked={emailAvailable}
-          class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
-      />
-  </div>
+<div class="flex gap-4 mb-4">
+    <input type="text" bind:value={locationFilter} placeholder="Filter by location" class="p-2 rounded" />
+    <label>
+        <input type="checkbox" bind:checked={emailFilter} /> Only with email
+    </label>
+    <button on:click={applyFilters} class="px-4 py-2 bg-blue-500 text-white rounded">Apply Filters</button>
 </div>

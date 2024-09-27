@@ -21,6 +21,7 @@ export const GET: RequestHandler = async (req) => { // Changed 'default' to 'GET
       {
         headers: {
           Authorization: `token ${apiKey}`,
+          Accept: "application/vnd.github.v3+json" // Ensure we get the correct response format
         },
       }
     );
