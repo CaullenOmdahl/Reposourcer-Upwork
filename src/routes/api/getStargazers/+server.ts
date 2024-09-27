@@ -2,7 +2,7 @@ import axios from 'axios';
 import { redisGet, redisSet } from '../../../lib/redis';  // Redis functions for caching
 import type { RequestHandler } from "@sveltejs/kit"; // Import necessary types
 
-export const GET: RequestHandler = async ({ url }) => { // Changed 'get' to 'GET'
+export const GET: RequestHandler = async ({ url }) => {
 	const owner = url.searchParams.get("owner");
 	const repo = url.searchParams.get("repo");
 	const page = url.searchParams.get("page") || "1";
@@ -14,14 +14,18 @@ export const GET: RequestHandler = async ({ url }) => { // Changed 'get' to 'GET
 	}
 
 	const cacheKey = `${owner}-${repo}-${page}`;
+	const isLocalhost = process.env.NODE_ENV === "development"; // Check if running locally
 
-	// Check Redis cache first
-	const cachedStargazers = await redisGet(cacheKey);
-	if (cachedStargazers) {
-		if (process.env.DEBUG === "TRUE") {
-			console.log("Cached Stargazers Data:", cachedStargazers);
+	let cachedStargazers;
+	// Check Redis cache only if not running on localhost
+	if (!isLocalhost) {
+		cachedStargazers = await redisGet(cacheKey);
+		if (cachedStargazers) {
+			if (process.env.DEBUG === "TRUE") {
+				console.log("Cached Stargazers Data:", cachedStargazers);
+			}
+			return new Response(JSON.stringify(cachedStargazers), { status: 200 });
 		}
-		return new Response(JSON.stringify(cachedStargazers), { status: 200 });
 	}
 
 	// If cache miss, make GitHub API call
@@ -39,24 +43,13 @@ export const GET: RequestHandler = async ({ url }) => { // Changed 'get' to 'GET
 			}
 		);
 
-		// Check if stargazers is already declared
-		if (typeof stargazers === "undefined") {
-			const stargazers = response.data; // Declare stargazers only if not already declared
-		}
-
-		// Log the fetched stargazers data if DEBUG is TRUE
-		if (process.env.DEBUG === "TRUE") {
-			console.log("Fetched Stargazers Data:", stargazers);
-		}
-
-		// Ensure company is fetched correctly in fetchStargazers
 		const stargazers = response.data.map(stargazer => {
-			const userDetails = stargazer.user;
+			const userDetails = stargazer.user || {}; // Default to an empty object if user is undefined
 			return {
 				...stargazer,
-				name: userDetails.name || "",
-				location: userDetails.location || "",
-				company: userDetails.company || "N/A", // Default to "N/A" if not available
+				name: userDetails.name || "Unknown", // Provide a default value
+				location: userDetails.location || "N/A",
+				company: userDetails.company || "N/A",
 				twitter: userDetails.twitter_username || "",
 				website: userDetails.blog || "",
 				email: userDetails.email || "",
@@ -64,8 +57,10 @@ export const GET: RequestHandler = async ({ url }) => { // Changed 'get' to 'GET
 			};
 		});
 
-		// Save the stargazers data to Redis (with a TTL of 1 hour)
-		await redisSet(cacheKey, stargazers, 3600);
+		// Save the stargazers data to Redis only if not running on localhost
+		if (!isLocalhost) {
+			await redisSet(cacheKey, stargazers, 3600);
+		}
 
 		return new Response(JSON.stringify(stargazers), { status: 200 });
 	} catch (error) {

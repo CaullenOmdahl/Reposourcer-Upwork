@@ -2,45 +2,51 @@ import axios from 'axios';
 import { redisGet, redisSet } from '../../../lib/redis';  // Import redis utility functions
 import type { RequestHandler } from "@sveltejs/kit"; // Use type-only import for request handler
 
-export const GET: RequestHandler = async (req) => { // Changed 'default' to 'GET'
-  const url = new URL(req.url); // Create a URL object from the request URL
-  const username = url.searchParams.get("username"); // Get the 'username' query parameter
-  const cacheKey = `user-${username}`;
+export const GET: RequestHandler = async (req) => {
+	const url = new URL(req.url);
+	const username = url.searchParams.get("username");
+	const cacheKey = `user-${username}`;
 
-  // Check Redis cache first
-  const cachedUser = await redisGet(cacheKey);
-  if (cachedUser) {
-    if (process.env.DEBUG === "TRUE") {
-      console.log("Cached User Data:", cachedUser);
-    }
-    return new Response(JSON.stringify(cachedUser), { status: 200 });
-  }
+	// Check if running on localhost
+	const isLocalhost = process.env.NODE_ENV === "development";
 
-  // If cache miss, make GitHub API call
-  try {
-    const apiKey = process.env.GITHUB_API_KEY;
-    const response = await axios.get(
-      `https://api.github.com/users/${username}`,
-      {
-        headers: {
-          Authorization: `token ${apiKey}`,
-          Accept: "application/vnd.github.v3+json" // Ensure we get the correct response format
-        },
-      }
-    );
+	// Check Redis cache only if not running on localhost
+	let cachedUser;
+	if (!isLocalhost) {
+		cachedUser = await redisGet(cacheKey);
+		if (cachedUser) {
+			if (process.env.DEBUG === "TRUE") {
+				console.log("Cached User Data:", cachedUser);
+			}
+			return new Response(JSON.stringify(cachedUser), { status: 200 });
+		}
+	}
 
-    // Log the fetched user data if DEBUG is TRUE
-    if (process.env.DEBUG === "TRUE") {
-      console.log("Fetched User Data:", response.data);
-    }
+	// If cache miss, make GitHub API call
+	try {
+		const apiKey = process.env.GITHUB_API_KEY; // Use the API key from .env
+		const response = await axios.get(
+			`https://api.github.com/users/${username}`,
+			{
+				headers: {
+					Authorization: `token ${apiKey}`,
+					Accept: "application/vnd.github.v3+json"
+				},
+			}
+		);
 
-    // Save the user data to Redis (with a TTL of 1 hour)
-    await redisSet(cacheKey, response.data, 3600);
+		if (process.env.DEBUG === "TRUE") {
+			console.log("Fetched User Data:", response.data);
+		}
 
-    // Send response to the client
-    return new Response(JSON.stringify(response.data), { status: 200 });
-  } catch (error) {
-    console.error('Error fetching user details:', error);
-    return new Response(JSON.stringify({ error: 'Error fetching user details' }), { status: 500 });
-  }
+		// Save the user data to Redis only if not running on localhost
+		if (!isLocalhost) {
+			await redisSet(cacheKey, response.data, 3600);
+		}
+
+		return new Response(JSON.stringify(response.data), { status: 200 });
+	} catch (error) {
+		console.error('Error fetching user details:', error);
+		return new Response(JSON.stringify({ error: 'Error fetching user details' }), { status: 500 });
+	}
 };
