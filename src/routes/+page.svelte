@@ -28,7 +28,7 @@
         submit: () => void;
     };
 
-    let stargazers: Stargazer[] = []; // Change from const to let
+    let stargazers: Stargazer[] = []; // Ensure this is defined as let
     let filteredStargazers: Stargazer[] = []; // Explicitly define the type
     let locationFilter: string = ""; // Ensure this is defined as string
     let emailAvailable: boolean = false; // Ensure this is defined as boolean
@@ -99,9 +99,9 @@
           };
         }));
 
-        // Correctly assign detailed stargazers to the stargazers variable
-        stargazers = detailedStargazers; // Ensure stargazers is defined as let
-        filteredStargazers = stargazers; // Assign to filteredStargazers
+        let stargazers2: Stargazer[]; // Declare stargazers2 as let
+        stargazers2 = detailedStargazers; // Now you can assign to it
+        filteredStargazers = stargazers2; // Assign to filteredStargazers
         apiCallsRemaining -= 1; // Decrement API calls remaining
       } catch (error) {
         console.error("Error fetching stargazers:", error);

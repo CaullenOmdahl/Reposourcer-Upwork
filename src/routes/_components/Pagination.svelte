@@ -1,36 +1,22 @@
-<script lang="ts"> // Specify TypeScript language
-  // Exporting currentPage, total, and pageChange function
-  export let currentPage = 1;
-  export let total = 0;
-  export let pageChange: () => void; // Explicitly define the type of pageChange
+<script lang="ts">
+    import { createEventDispatcher } from "svelte"; // Import the dispatcher
 
-  // Calculate total pages based on total items
-  const totalPages = Math.ceil(total / 100);
+    const dispatch = createEventDispatcher(); // Initialize dispatch
 
-  // Navigate to a specific page
-  function goToPage(page: number) { // Specify the type for page
-      if (page < 1 || page > totalPages) return; // Prevent invalid page navigation
-      currentPage = page; // Update current page
-      pageChange(); // Trigger page change event
-  }
+    export let currentPage = 1;
+    export let totalCount: number = 0; // Ensure this is defined as number
+    let pageSize = 30;  // Assuming 30 results per page
+
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    const changePage = (newPage) => {
+        currentPage = newPage;
+        dispatch("pageChange", { page: newPage });
+    };
 </script>
 
-{#if totalPages > 1}
-  <div class="mt-6 flex justify-between">
-      <button
-          class="bg-indigo-600 text-white px-3 py-1 rounded-md shadow-sm hover:bg-indigo-700 disabled:bg-gray-300"
-          on:click={() => goToPage(currentPage - 1)}
-          disabled={currentPage === 1}
-      >
-          Previous
-      </button>
-      <span class="text-sm text-gray-700">Page {currentPage} of {totalPages}</span>
-      <button
-          class="bg-indigo-600 text-white px-3 py-1 rounded-md shadow-sm hover:bg-indigo-700 disabled:bg-gray-300"
-          on:click={() => goToPage(currentPage + 1)}
-          disabled={currentPage === totalPages}
-      >
-          Next
-      </button>
-  </div>
-{/if}
+<div class="flex justify-between items-center">
+    <button on:click={() => changePage(currentPage - 1)} disabled={currentPage === 1} class="px-4 py-2">Previous</button>
+    <span>Page {currentPage} of {totalPages}</span>
+    <button on:click={() => changePage(currentPage + 1)} disabled={currentPage === totalPages} class="px-4 py-2">Next</button>
+</div>
