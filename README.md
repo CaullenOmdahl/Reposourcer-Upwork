@@ -7,6 +7,7 @@ This project is a web application that allows users to view the list of stargaze
 - Caching of API responses using Redis
 - Pagination for stargazer results
 - Filters for location and email availability
+- User-friendly interface with modals for API key input
 
 ## Technologies Used
 - Svelte for the frontend
@@ -47,6 +48,12 @@ This project is a web application that allows users to view the list of stargaze
    ```
 
 5. Open your browser and navigate to `http://localhost:3000`.
+
+## Usage
+- Enter the GitHub repository URL in the input field (e.g., `https://github.com/owner/repo`).
+- Click the "Search" button to fetch stargazers.
+- Use the filters to narrow down the results by location and email availability.
+- Select stargazers using checkboxes and download the selected stargazers as a CSV file.
 
 ## Deployment
 To deploy the application, you can use platforms like Vercel or Heroku. Ensure that your environment variables are set in the deployment platform.
