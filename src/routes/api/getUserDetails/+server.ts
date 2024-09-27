@@ -1,15 +1,15 @@
 import axios from 'axios';
 import { redisGet, redisSet } from '../../../lib/redis';  // Import redis utility functions
-import type { NextApiRequest, NextApiResponse } from "next"; // Use type-only import for request and response
+import type { RequestHandler } from "@sveltejs/kit"; // Use type-only import for request handler
 
-export default async (req: NextApiRequest, res: NextApiResponse) => { // Specify types for req and res
+export const GET: RequestHandler = async (req) => { // Changed 'default' to 'GET'
   const { username } = req.query;
   const cacheKey = `user-${username}`;
 
   // Check Redis cache first
   const cachedUser = await redisGet(cacheKey);
   if (cachedUser) {
-    return res.status(200).json(cachedUser);
+    return new Response(JSON.stringify(cachedUser), { status: 200 });
   }
 
   // If cache miss, make GitHub API call
@@ -28,9 +28,9 @@ export default async (req: NextApiRequest, res: NextApiResponse) => { // Specify
     await redisSet(cacheKey, response.data, 3600);
 
     // Send response to the client
-    return res.status(200).json(response.data);
+    return new Response(JSON.stringify(response.data), { status: 200 });
   } catch (error) {
     console.error('Error fetching user details:', error);
-    return res.status(500).json({ error: 'Error fetching user details' });
+    return new Response(JSON.stringify({ error: 'Error fetching user details' }), { status: 500 });
   }
 };
