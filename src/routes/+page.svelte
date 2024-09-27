@@ -33,6 +33,16 @@
     let apiCallsRemaining: number = 5000; // Example initial value
     let resetTime: string = ""; // Reset time for API calls
 
+    // Function to extract owner and repo from the GitHub URL
+    function getOwnerAndRepo(url: string): { owner: string; repo: string } | null {
+        const regex = /github\.com\/([^\/]+)\/([^\/]+)/;
+        const match = url.match(regex);
+        if (match && match.length > 2) {
+            return { owner: match[1], repo: match[2] };
+        }
+        return null;
+    }
+
     // Check if API key is in session storage
     onMount(() => {
         const apiKey: string | null = sessionStorage.getItem("GITHUB_API_KEY");
