@@ -1,74 +1,38 @@
-# GitHub Stargazers Viewer
+# create-svelte
 
-This project is a web application that allows users to view the list of stargazers for a specific GitHub repository. It utilizes Redis for caching and Axios for making HTTP requests to the GitHub API.
+Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).
 
-## Features
-- View stargazers of a GitHub repository
-- Caching of API responses using Redis
-- Pagination for stargazer results
-- Filters for location and email availability
-- User-friendly interface with modals for API key input
+## Creating a project
 
-## Technologies Used
-- Svelte for the frontend
-- Node.js with Express for the backend
-- Redis for caching
-- Axios for HTTP requests
+If you're seeing this, you've probably already done this step. Congrats!
 
-## Setup
+```bash
+# create a new project in the current directory
+npm create svelte@latest
 
-### Prerequisites
-- Node.js (v14 or higher)
-- Redis server (local or Upstash)
-- GitHub API key
+# create a new project in my-app
+npm create svelte@latest my-app
+```
 
-### Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/github-stargazers-viewer.git
-   cd github-stargazers-viewer
-   ```
+## Developing
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
 
-3. Set up environment variables:
-   Create a `.env` file in the root directory and add the following:
-   ```plaintext
-   GITHUB_API_KEY=your_github_api_key
-   UPSTASH_REDIS_URL=your_upstash_redis_url
-   UPSTASH_REDIS_PASSWORD=your_upstash_redis_password
-   ```
+```bash
+npm run dev
 
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```
+# or start the server and open the app in a new browser tab
+npm run dev -- --open
+```
 
-5. Open your browser and navigate to `http://localhost:3000`.
+## Building
 
-## Usage
-- Enter the GitHub repository URL in the input field (e.g., `https://github.com/owner/repo`).
-- Click the "Search" button to fetch stargazers.
-- Use the filters to narrow down the results by location and email availability.
-- Select stargazers using checkboxes and download the selected stargazers as a CSV file.
+To create a production version of your app:
 
-## Deployment
-To deploy the application, you can use platforms like Vercel or Heroku. Ensure that your environment variables are set in the deployment platform.
+```bash
+npm run build
+```
 
-1. Push your code to a Git repository.
-2. Connect your repository to the deployment platform.
-3. Set the environment variables in the platform's settings.
-4. Deploy the application.
+You can preview the production build with `npm run preview`.
 
-## Possible Improvements
-- Implement user authentication to save favorite repositories.
-- Add more filters (e.g., by date of stargazing).
-- Improve error handling and user feedback for API failures.
-- Enhance UI/UX with better styling and animations.
-- Implement unit and integration tests for better reliability.
-
-## License
-This project is licensed under the MIT License.
+> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
