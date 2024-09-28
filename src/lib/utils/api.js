@@ -1,7 +1,8 @@
 // src/lib/utils/api.js
 import { redis } from './redis';
+import axios from 'axios';
 
-// Use the native fetch API
+// Use Axios to fetch stargazers from GitHub and cache in Redis
 export async function fetchStargazers(owner, repo, page = 1, per_page = 30) {
   const cacheKey = `stargazers:${owner}:${repo}:page:${page}:per_page:${per_page}`;
 
@@ -10,28 +11,26 @@ export async function fetchStargazers(owner, repo, page = 1, per_page = 30) {
     const cachedData = await redis.get(cacheKey);
     if (cachedData) {
       console.log(`Cache hit for key: ${cacheKey}`);
-      return cachedData;
+      return JSON.parse(cachedData); // Parse cached data before returning
     }
 
     console.log(`Cache miss for key: ${cacheKey}. Fetching from GitHub API.`);
 
-    // Fetch data from GitHub API using the native fetch
-    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/stargazers?page=${page}&per_page=${per_page}`, {
+    // Fetch data from GitHub API using Axios
+    const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/stargazers`, {
+      params: {
+        page,
+        per_page,
+      },
       headers: {
         Accept: 'application/vnd.github.v3+json',
       },
     });
 
-    if (!response.ok) {
-      const errorMessage = `GitHub API error: ${response.status} ${response.statusText}`;
-      console.error(errorMessage);
-      throw new Error(errorMessage);
-    }
-
-    const data = await response.json();
+    const data = response.data;
 
     // Cache the fetched data in Redis with an expiration time (e.g., 1 hour)
-    await redis.set(cacheKey, data, { ex: 3600 }); // Expires in 3600 seconds
+    await redis.set(cacheKey, JSON.stringify(data), { ex: 3600 }); // Expires in 3600 seconds
 
     return data;
   } catch (error) {
@@ -40,23 +39,16 @@ export async function fetchStargazers(owner, repo, page = 1, per_page = 30) {
   }
 }
 
+// Fetch rate limit information from GitHub API using Axios
 export async function fetchRateLimit() {
   try {
-    const response = await fetch("https://api.github.com/rate_limit", {
+    const response = await axios.get("https://api.github.com/rate_limit", {
       headers: {
         Accept: "application/vnd.github.v3+json",
-        // Authorization: `token YOUR_GITHUB_TOKEN`, // Uncomment if authentication is required
       },
     });
 
-    if (!response.ok) {
-      const errorMessage = `GitHub API error: ${response.status} ${response.statusText}`;
-      console.error(errorMessage);
-      throw new Error(errorMessage);
-    }
-
-    const data = await response.json();
-    return data.rate; // Adjust based on the structure of the response
+    return response.data.rate; // Adjust based on the structure of the response
   } catch (error) {
     console.error(`Error in fetchRateLimit: ${error.message}`);
     throw error; // Propagate the error to be handled upstream
