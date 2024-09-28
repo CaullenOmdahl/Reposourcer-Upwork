@@ -1,59 +1,42 @@
 // src/lib/utils/api.js
-import axios from 'axios';
-import { get } from 'svelte/store';
-import { apiKeyStore } from '../stores/apiKeyStore';
-import { rateLimitStore } from '../stores/rateLimitStore';
+import { redis } from './redis';
+import { fetch } from 'node-fetch'; // Ensure node-fetch is installed
 
-const GITHUB_API_BASE = 'https://api.github.com';
+export async function fetchStargazers(owner, repo, page = 1, per_page = 30) {
+  const cacheKey = `stargazers:${owner}:${repo}:page:${page}:per_page:${per_page}`;
 
-async function updateRateLimit(headers) {
-  const remaining = headers['x-ratelimit-remaining'];
-  const reset = headers['x-ratelimit-reset'];
-  rateLimitStore.set({
-    remaining: Number(remaining),
-    reset: new Date(Number(reset) * 1000),
-  });
-}
-
-export async function fetchStargazers(owner, repo, page = 1, per_page = 100) {
-  const apiKey = get(apiKeyStore);
-  const headers = apiKey ? { Authorization: `token ${apiKey}` } : {};
-  const url = `${GITHUB_API_BASE}/repos/${owner}/${repo}/stargazers?page=${page}&per_page=${per_page}`;
-  
   try {
-    const response = await axios.get(url, { headers, params: { per_page, page } });
-    await updateRateLimit(response.headers);
-    return response.data;
+    // Attempt to retrieve data from Redis cache
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+      console.log(`Cache hit for key: ${cacheKey}`);
+      return cachedData;
+    }
+
+    console.log(`Cache miss for key: ${cacheKey}. Fetching from GitHub API.`);
+
+    // Fetch data from GitHub API
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/stargazers?page=${page}&per_page=${per_page}`, {
+      headers: {
+        Accept: 'application/vnd.github.v3+json',
+        // Authorization: `token YOUR_GITHUB_TOKEN`, // Uncomment if authentication is required
+      },
+    });
+
+    if (!response.ok) {
+      const errorMessage = `GitHub API error: ${response.status} ${response.statusText}`;
+      console.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+
+    // Cache the fetched data in Redis with an expiration time (e.g., 1 hour)
+    await redis.set(cacheKey, data, { ex: 3600 }); // Expires in 3600 seconds
+
+    return data;
   } catch (error) {
-    console.error("Error fetching stargazers:", error); // Log the error
-    throw error; // Rethrow the error for further handling
+    console.error(`Error in fetchStargazers: ${error.message}`);
+    throw error; // Propagate the error to be handled upstream
   }
-}
-
-const userCache = new Map();
-
-export async function fetchUserDetails(username) {
-  if (userCache.has(username)) {
-    return userCache.get(username);
-  }
-  const apiKey = get(apiKeyStore);
-  const headers = apiKey ? { Authorization: `token ${apiKey}` } : {};
-  const url = `${GITHUB_API_BASE}/users/${username}`;
-  const response = await axios.get(url, { headers });
-  await updateRateLimit(response.headers);
-  userCache.set(username, response.data);
-  return response.data;
-}
-
-export async function fetchRateLimit() {
-  const apiKey = get(apiKeyStore);
-  const headers = apiKey ? { Authorization: `token ${apiKey}` } : {};
-  const url = `${GITHUB_API_BASE}/rate_limit`;
-  const response = await axios.get(url, { headers });
-  const core = response.data.resources.core;
-  rateLimitStore.set({
-    remaining: core.remaining,
-    reset: new Date(core.reset * 1000),
-  });
-  return response.data;
 }
