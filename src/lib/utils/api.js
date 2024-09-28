@@ -19,7 +19,6 @@ export async function fetchStargazers(owner, repo, page = 1, per_page = 30) {
     const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/stargazers?page=${page}&per_page=${per_page}`, {
       headers: {
         Accept: 'application/vnd.github.v3+json',
-        // Authorization: `token YOUR_GITHUB_TOKEN`, // Uncomment if authentication is required
       },
     });
 
