@@ -11,3 +11,6 @@ export const redis = new Redis({
 export const redisRest = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
 });
+
+console.log("Redis URL:", process.env.UPSTASH_REDIS_REST_URL);
+console.log("Redis Token:", process.env.UPSTASH_REDIS_REST_TOKEN);
