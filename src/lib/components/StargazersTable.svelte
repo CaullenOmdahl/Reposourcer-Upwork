@@ -29,7 +29,11 @@
     error = '';
     console.log(`Fetching stargazers for ${owner}/${repo}...`);
     try {
-      const data = await fetchStargazers(owner, repo);
+      const response = await fetch(`/api/stargazers/${owner}/${repo}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch stargazers');
+      }
+      const data = await response.json();
       console.log('Fetched stargazers:', data);
       stargazersStore.set({ data, loading: false, error: '' });
     } catch (err) {
