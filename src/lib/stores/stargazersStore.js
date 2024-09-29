@@ -2,8 +2,8 @@
 import { writable } from 'svelte/store';
 
 const initialState = {
-  data: [],
-  filteredData: [], // Added to store filtered results
+  allData: [], // Store all stargazers here
+  filteredData: [], // Store filtered stargazers here
   currentPage: 1,
   perPage: 25,
   hasNextPage: false,
@@ -16,14 +16,19 @@ const initialState = {
 
 export const stargazersStore = writable(initialState);
 
-export const setStargazers = (newData, paginationInfo) => {
+export const setAllStargazers = (newData) => {
   stargazersStore.update((state) => ({
     ...state,
-    data: newData,
+    allData: newData,
     loading: false,
     error: null,
-    hasNextPage: paginationInfo.hasNextPage,
-    hasPrevPage: paginationInfo.hasPrevPage,
+  }));
+};
+
+export const setFilteredStargazers = (filteredData) => {
+  stargazersStore.update((state) => ({
+    ...state,
+    filteredData,
   }));
 };
 

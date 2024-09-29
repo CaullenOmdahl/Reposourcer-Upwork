@@ -1,47 +1,71 @@
+<!-- src/lib/components/SearchBar.svelte -->
 <script>
-  import { createEventDispatcher } from 'svelte';
-  import { validateRepoURL } from '../utils/validators';
-  import { stargazersStore } from '../stores/stargazersStore';
   import { loadStargazers } from '../utils/fetchStargazers';
+  import { stargazersStore } from '../stores/stargazersStore';
+  import ErrorAlert from './ErrorAlert.svelte';
+  import { get } from 'svelte/store';
 
   let repoURL = '';
-  const dispatch = createEventDispatcher();
-  let error = '';
+  let inputError = '';
+
+  /**
+   * Validates and extracts owner and repo from the provided GitHub repository URL.
+   * @param {string} url - The GitHub repository URL.
+   * @returns {Object|null} - An object with owner and repo or null if invalid.
+   */
+  const parseRepoURL = (url) => {
+    try {
+      const parsedURL = new URL(url);
+      const [owner, repo] = parsedURL.pathname.slice(1).split('/');
+      if (owner && repo) {
+        return { owner, repo };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
 
   const handleSearch = async () => {
-  const result = validateRepoURL(repoURL);
-  if (!result) {
-    error = 'Please enter a valid GitHub repository URL.';
-    return;
-  }
+    inputError = '';
+    const parsed = parseRepoURL(repoURL);
 
-  const { owner, repo } = result;
+    if (!parsed) {
+      inputError = 'Please enter a valid GitHub repository URL.';
+      return;
+    }
 
-  stargazersStore.update((state) => ({
-    ...state,
-    owner,
-    repo,
-    currentPage: 1,
-  }));
+    const { owner, repo } = parsed;
 
-  await loadStargazers(owner, repo, 1);
-};
+    // Update store with owner and repo
+    stargazersStore.update((state) => ({
+      ...state,
+      owner,
+      repo,
+    }));
+
+    // Load all stargazers
+    await loadStargazers(owner, repo);
+  };
 </script>
 
-<div class="mb-4">
-  <label for="repoURL" class="block text-sm font-medium text-gray-700">Repository URL</label>
+<div class="flex items-center space-x-2 mb-4">
   <input
-    id="repoURL"
     type="text"
-    placeholder="https://github.com/owner/repo"
     bind:value={repoURL}
-    class="block w-full rounded-md border-gray-300 shadow-sm"
-    aria-label="GitHub repository URL"
+    placeholder="Enter GitHub Repository URL"
+    class="flex-grow px-4 py-2 border rounded"
+    aria-label="Repository URL"
   />
-  {#if error}
-    <p class="mt-2 text-sm text-red-600">{error}</p>
-  {/if}
-  <button on:click={handleSearch} class="mt-3 bg-indigo-600 text-white px-4 py-2 rounded">
+  <button
+    on:click={handleSearch}
+    class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500"
+    aria-label="Search"
+  >
     Search
   </button>
 </div>
+
+{#if inputError}
+  <ErrorAlert message={inputError} />
+{/if}
