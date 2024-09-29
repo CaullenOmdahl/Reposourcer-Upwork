@@ -11,3 +11,9 @@
     </button>
   {/if}
 </div>
+
+<style>
+  button:disabled {
+    cursor: not-allowed;
+  }
+</style>

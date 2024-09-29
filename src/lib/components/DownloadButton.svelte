@@ -1,3 +1,4 @@
+<!-- src/lib/components/DownloadButton.svelte -->
 <script>
   import ErrorAlert from './ErrorAlert.svelte';
   import { generateCSV } from '../utils/csvGenerator';

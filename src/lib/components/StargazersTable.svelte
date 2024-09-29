@@ -75,11 +75,11 @@
       }
 
       if (filters.hasTwitter) {
-        matches = matches && !!user.twitter_username;
+        matches = matches && !!user.twitterUsername;
       }
 
       if (filters.hasWebsite) {
-        matches = matches && !!user.blog;
+        matches = matches && !!user.websiteUrl;
       }
 
       return matches;

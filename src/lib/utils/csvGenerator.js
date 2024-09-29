@@ -4,15 +4,15 @@ import Papa from 'papaparse';
 export function generateCSV(data) {
   const csvData = data.map((user) => ({
     Username: user.login,
-    Name: user.details?.name || '',
-    Location: user.details?.location || '',
-    Company: user.details?.company || '',
-    Total_Stars: user.details?.public_repos || 0,
-    Twitter: user.details?.twitter_username
-      ? `https://twitter.com/${user.details.twitter_username}`
+    Name: user.name || '',
+    Location: user.location || '',
+    Company: user.company || '',
+    Total_Repos: user.repositories?.totalCount || 0,
+    Twitter: user.twitterUsername
+      ? `https://twitter.com/${user.twitterUsername}`
       : '',
-    Website: user.details?.blog || '',
-    Email: user.details?.email || '',
+    Website: user.websiteUrl || '',
+    Email: user.email || '',
   }));
 
   const csv = Papa.unparse(csvData);
