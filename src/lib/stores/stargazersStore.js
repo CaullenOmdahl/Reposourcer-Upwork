@@ -5,7 +5,7 @@ const initialState = {
   allData: [], // Store all stargazers here
   filteredData: [], // Store filtered stargazers here
   currentPage: 1,
-  perPage: 25,
+  perPage: 100, // Updated to match API per_page
   loading: false,
   error: null,
   owner: null,
@@ -23,10 +23,10 @@ export const setAllStargazers = (newData) => {
   }));
 };
 
-export const setFilteredStargazers = (filteredData) => {
+export const setFilteredStargazers = (filteredData, append = false) => {
   stargazersStore.update((state) => ({
     ...state,
-    filteredData,
+    filteredData: append ? [...state.filteredData, ...filteredData] : filteredData,
   }));
 };
 

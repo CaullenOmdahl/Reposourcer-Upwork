@@ -17,9 +17,8 @@
   let repo = null;
   let showModal = false;
   let selectedImage = '';
-  let currentPage = 1;
-  let perPage = 25; // Default value, will be updated from the store
-  let pageInfo = null; // New variable for pagination info
+  let perPage = 100; // Updated to match store
+  let pageInfo = null; // Variable for pagination info
   let filteredStargazers = []; // Declare filteredStargazers
   let locationOptions = []; // Initialize locationOptions
 
@@ -39,7 +38,6 @@
     error = state.error;
     owner = state.owner;
     repo = state.repo;
-    currentPage = state.currentPage;
     perPage = state.perPage; // Update perPage from the store
     updateLocationOptions();
   });
@@ -85,7 +83,7 @@
       return matches;
     });
 
-    // Update the store with filtered data for pagination and download
+    // Update the store with filtered data for download
     stargazersStore.update((state) => ({
       ...state,
       filteredData: filteredStargazers,
@@ -132,10 +130,6 @@
     }
   };
 
-  // Calculate indices for pagination
-  $: startIdx = (currentPage - 1) * perPage;
-  $: endIdx = startIdx + perPage;
-
   // Clean up subscriptions when the component is destroyed
   onDestroy(() => {
     unsubscribeStargazers();
@@ -144,7 +138,7 @@
 </script>
 
 {#if owner && repo}
-  {#if loading}
+  {#if loading && stargazers.length === 0}
     <LoadingSpinner />
   {:else if error}
     <ErrorAlert message={error} />
@@ -170,7 +164,7 @@
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 bg-white">
-        {#each filteredStargazers.slice(startIdx, endIdx) as user}
+        {#each filteredStargazers as user}
           <tr>
             <td class="whitespace-nowrap px-3 py-4">
               <img src={user.avatarUrl} alt="{user.login}'s avatar" class="h-10 w-10 rounded-full" />

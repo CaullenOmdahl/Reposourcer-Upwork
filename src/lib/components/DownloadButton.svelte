@@ -22,13 +22,13 @@
   };
 </script>
 
-<div>
-  <button on:click={handleDownload} class="bg-green-500 text-white px-4 py-2 rounded">
+<div class="flex items-center space-x-2">
+  <button on:click={handleDownload} class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-400">
     Download Results as CSV
   </button>
 
   {#if downloadError}
-    <div class="mt-2">
+    <div class="ml-2">
       <ErrorAlert message={downloadError} />
     </div>
   {/if}

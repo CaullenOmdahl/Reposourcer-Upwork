@@ -39,7 +39,7 @@ export async function loadStargazers(owner, repo, cursor = null) {
 
     // Update the store with fetched stargazers
     setAllStargazers(data.stargazers);
-    setFilteredStargazers(data.stargazers);
+    setFilteredStargazers(data.stargazers, true); // Append new stargazers
 
     // Return pageInfo for further pagination
     return data.pageInfo;

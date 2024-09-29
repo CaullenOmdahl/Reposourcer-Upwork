@@ -1,3 +1,4 @@
+<!-- src/lib/components/FilterPanel.svelte -->
 <script>
   import { createEventDispatcher } from 'svelte';
   import { filtersStore } from '../stores/filtersStore';
@@ -35,6 +36,9 @@
 
 <div class="mb-4 p-4 bg-white rounded shadow">
   <h3 class="text-lg font-semibold mb-2">Filters</h3>
+  <p class="text-sm text-gray-600 mb-4">
+    Select your filter options and click "Apply Filters" to see the results.
+  </p>
   <div class="flex flex-col space-y-2">
     <div>
       <label for="location" class="block text-sm font-medium text-gray-700">Location</label>
