@@ -3,6 +3,7 @@ import { writable } from 'svelte/store';
 
 const initialState = {
   data: [],
+  filteredData: [], // Added to store filtered results
   currentPage: 1,
   perPage: 25,
   hasNextPage: false,
@@ -11,7 +12,6 @@ const initialState = {
   error: null,
   owner: null,
   repo: null,
-  selected: new Set(),
 };
 
 export const stargazersStore = writable(initialState);
@@ -46,9 +46,4 @@ export const setError = (errorMessage) => {
     ...state,
     error: errorMessage,
   }));
-};
-
-// Optional reset function
-export const resetStore = () => {
-  stargazersStore.set(initialState);
 };

@@ -1,6 +1,7 @@
 <script>
   import { onDestroy } from 'svelte';
-  import { stargazersStore, updateCurrentPage } from '../stores/stargazersStore';
+  import { stargazersStore } from '../stores/stargazersStore';
+  import { filtersStore } from '../stores/filtersStore';
   import LoadingSpinner from './LoadingSpinner.svelte';
   import ErrorAlert from './ErrorAlert.svelte';
   import DownloadButton from './DownloadButton.svelte';
@@ -10,6 +11,8 @@
   import { loadStargazers } from '../utils/fetchStargazers';
 
   let stargazers = [];
+  let filteredStargazers = [];
+  let locationOptions = [];
   let loading = false;
   let error = '';
   let owner = null;
@@ -20,7 +23,13 @@
   let hasNextPage = false;
   let hasPrevPage = false;
 
-  const unsubscribe = stargazersStore.subscribe((state) => {
+  let filters = {};
+  const unsubscribeFilters = filtersStore.subscribe((value) => {
+    filters = value;
+    applyFilters();
+  });
+
+  const unsubscribeStargazers = stargazersStore.subscribe((state) => {
     stargazers = state.data;
     loading = state.loading;
     error = state.error;
@@ -29,7 +38,57 @@
     currentPage = state.currentPage;
     hasNextPage = state.hasNextPage;
     hasPrevPage = state.hasPrevPage;
+    updateLocationOptions();
+    applyFilters();
   });
+
+  function applyFilters() {
+    filteredStargazers = stargazers.filter((user) => {
+      let matches = true;
+
+      if (filters.location) {
+        matches = matches && user.details?.location?.toLowerCase().includes(filters.location.toLowerCase());
+      }
+
+      if (filters.hasEmail) {
+        matches = matches && !!user.details?.email;
+      }
+
+      if (filters.hasLocation) {
+        matches = matches && !!user.details?.location;
+      }
+
+      if (filters.hasCompany) {
+        matches = matches && !!user.details?.company;
+      }
+
+      if (filters.hasTwitter) {
+        matches = matches && !!user.details?.twitter_username;
+      }
+
+      if (filters.hasWebsite) {
+        matches = matches && !!user.details?.blog;
+      }
+
+      return matches;
+    });
+
+    // Update the store with filtered data for the download button
+    stargazersStore.update((state) => ({
+      ...state,
+      filteredData: filteredStargazers,
+    }));
+  }
+
+  function updateLocationOptions() {
+    const locationsSet = new Set();
+    stargazers.forEach(user => {
+      if (user.details?.location) {
+        locationsSet.add(user.details.location);
+      }
+    });
+    locationOptions = Array.from(locationsSet);
+  }
 
   const handleImageClick = (imageUrl) => {
     selectedImage = imageUrl;
@@ -41,19 +100,11 @@
     selectedImage = '';
   };
 
-  const handlePagination = async (event) => {
-    const { page } = event.detail;
-    if (owner && repo) {
-      updateCurrentPage(page);
-      await loadStargazers(owner, repo, page, 25);
-    }
-  };
-
   onDestroy(() => {
-    unsubscribe();
+    unsubscribeStargazers();
+    unsubscribeFilters();
   });
 </script>
-
 
 {#if owner && repo}
   <!-- Display the table and pagination controls -->
@@ -63,7 +114,7 @@
     <ErrorAlert message={error} />
   {:else}
     <!-- FilterPanel, DownloadButton, and Table Components -->
-    <FilterPanel />
+    <FilterPanel {locationOptions} />
     <DownloadButton />
 
     <!-- Table rendering -->
@@ -83,7 +134,7 @@
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 bg-white">
-        {#each stargazers as user}
+        {#each filteredStargazers as user}
           <tr>
             <td class="whitespace-nowrap px-3 py-4">
               <img src={user.avatar_url} alt="{user.login}'s avatar" class="h-10 w-10 rounded-full" />
@@ -135,7 +186,7 @@
       </tbody>
     </table>
 
-    <PaginationControls on:paginate={handlePagination} />
+    <PaginationControls />
   {/if}
 {:else}
   <p>Please enter a valid repository URL to view stargazers.</p>

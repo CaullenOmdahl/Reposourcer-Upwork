@@ -1,4 +1,3 @@
-<!-- src/lib/components/PaginationControls.svelte -->
 <script>
   import { stargazersStore } from '../stores/stargazersStore';
   import { loadStargazers } from '../utils/fetchStargazers';

@@ -3,8 +3,13 @@
   import { filtersStore } from '../stores/filtersStore';
   import ErrorAlert from './ErrorAlert.svelte';
 
+  export let locationOptions = [];
   let location = '';
   let hasEmail = false;
+  let hasLocation = false;
+  let hasCompany = false;
+  let hasTwitter = false;
+  let hasWebsite = false;
   let filterError = '';
 
   const dispatch = createEventDispatcher();
@@ -16,7 +21,14 @@
     }
 
     filterError = '';
-    filtersStore.set({ location, hasEmail });
+    filtersStore.set({
+      location,
+      hasEmail,
+      hasLocation,
+      hasCompany,
+      hasTwitter,
+      hasWebsite,
+    });
     dispatch('filtersUpdated');
   };
 </script>
@@ -29,11 +41,17 @@
       <input
         id="location"
         type="text"
+        list="locations"
         bind:value={location}
         placeholder="e.g., San Francisco"
         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
         aria-label="Filter by location"
       />
+      <datalist id="locations">
+        {#each locationOptions as loc}
+          <option value={loc}></option>
+        {/each}
+      </datalist>
     </div>
     <div class="flex items-center">
       <input
@@ -45,6 +63,55 @@
       />
       <label for="hasEmail" class="ml-2 block text-sm text-gray-900">
         Has Email
+      </label>
+    </div>
+    <!-- Additional Filters -->
+    <div class="flex items-center">
+      <input
+        type="checkbox"
+        id="hasLocation"
+        bind:checked={hasLocation}
+        class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+        aria-label="Filter by location availability"
+      />
+      <label for="hasLocation" class="ml-2 block text-sm text-gray-900">
+        Has Location
+      </label>
+    </div>
+    <div class="flex items-center">
+      <input
+        type="checkbox"
+        id="hasCompany"
+        bind:checked={hasCompany}
+        class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+        aria-label="Filter by company availability"
+      />
+      <label for="hasCompany" class="ml-2 block text-sm text-gray-900">
+        Has Company
+      </label>
+    </div>
+    <div class="flex items-center">
+      <input
+        type="checkbox"
+        id="hasTwitter"
+        bind:checked={hasTwitter}
+        class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+        aria-label="Filter by Twitter availability"
+      />
+      <label for="hasTwitter" class="ml-2 block text-sm text-gray-900">
+        Has Twitter
+      </label>
+    </div>
+    <div class="flex items-center">
+      <input
+        type="checkbox"
+        id="hasWebsite"
+        bind:checked={hasWebsite}
+        class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+        aria-label="Filter by website availability"
+      />
+      <label for="hasWebsite" class="ml-2 block text-sm text-gray-900">
+        Has Website
       </label>
     </div>
     <button
