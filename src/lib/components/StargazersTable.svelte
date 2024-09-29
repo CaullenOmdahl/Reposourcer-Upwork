@@ -1,168 +1,152 @@
-<!-- src/lib/components/StargazersTable.svelte -->
 <script>
-  import { onMount, onDestroy } from 'svelte';
-  import { stargazersStore } from '../stores/stargazersStore';
+  import { onDestroy } from 'svelte';
+  import { stargazersStore, updateCurrentPage } from '../stores/stargazersStore';
   import LoadingSpinner from './LoadingSpinner.svelte';
   import ErrorAlert from './ErrorAlert.svelte';
-  import RateLimitInfo from './RateLimitInfo.svelte';
   import DownloadButton from './DownloadButton.svelte';
-  import FilterPanel from './FilterPanel.svelte';
   import PaginationControls from './PaginationControls.svelte';
-  import { fetchStargazers } from '../utils/api'; // Your API call function
+  import Modal from './Modal.svelte';
+  import FilterPanel from './FilterPanel.svelte';
+  import { loadStargazers } from '../utils/fetchStargazers';
 
   let stargazers = [];
   let loading = false;
   let error = '';
-  let owner = 'owner'; // Replace with dynamic data as needed
-  let repo = 'repo'; // Replace with dynamic data as needed
+  let owner = null;
+  let repo = null;
+  let showModal = false;
+  let selectedImage = '';
+  let currentPage = 1;
+  let hasNextPage = false;
+  let hasPrevPage = false;
 
-  // Subscribe to the store
   const unsubscribe = stargazersStore.subscribe((state) => {
     stargazers = state.data;
     loading = state.loading;
     error = state.error;
-    console.log('Store updated:', state);
+    owner = state.owner;
+    repo = state.repo;
+    currentPage = state.currentPage;
+    hasNextPage = state.hasNextPage;
+    hasPrevPage = state.hasPrevPage;
   });
 
-  onMount(async () => {
-    loading = true;
-    error = '';
-    console.log(`Fetching stargazers for ${owner}/${repo}...`);
-    try {
-      const response = await fetch(`/api/stargazers/${owner}/${repo}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch stargazers');
-      }
-      const data = await response.json();
-      console.log('Fetched stargazers:', data);
-      stargazersStore.set({ data, loading: false, error: '' });
-    } catch (err) {
-      console.error('Error fetching stargazers:', err);
-      error = 'Failed to load stargazers. Please try again later.';
-      stargazersStore.set({ data: [], loading: false, error });
-    } finally {
-      loading = false;
-      console.log('Loading complete.');
+  const handleImageClick = (imageUrl) => {
+    selectedImage = imageUrl;
+    showModal = true;
+  };
+
+  const closeModal = () => {
+    showModal = false;
+    selectedImage = '';
+  };
+
+  const handlePagination = async (event) => {
+    const { page } = event.detail;
+    if (owner && repo) {
+      updateCurrentPage(page);
+      await loadStargazers(owner, repo, page, 25);
     }
-  });
+  };
 
   onDestroy(() => {
     unsubscribe();
   });
 </script>
 
-<div class="px-4 sm:px-6 lg:px-8">
-  <!-- Header Section -->
-  <div class="sm:flex sm:items-center">
-    <div class="sm:flex-auto">
-      <h1 class="text-base font-semibold leading-6 text-gray-900">Stargazers</h1>
-      <p class="mt-2 text-sm text-gray-700">
-        A list of all the stargazers for this repository, including their name, location, company, and more.
-      </p>
-    </div>
-    <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-      <DownloadButton />
-    </div>
-  </div>
 
-  <!-- Error Message -->
-  {#if error}
-    <div class="mt-4">
-      <ErrorAlert message={error} />
-    </div>
-  {/if}
-
-  <!-- Loading Spinner -->
+{#if owner && repo}
+  <!-- Display the table and pagination controls -->
   {#if loading}
     <LoadingSpinner />
-  {:else if !error}
-    <!-- Stargazers Table -->
-    <div class="mt-8 flow-root">
-      <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-        <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-          {#if stargazers.length === 0}
-            <p class="text-center text-gray-500">No stargazers found.</p>
-          {:else}
-            <table class="min-w-full divide-y divide-gray-300">
-              <thead>
-                <tr>
-                  <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Avatar</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Username</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Name</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Location</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Company</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Total Stars</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Activity</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Twitter</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Website</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Email</th>
-                  <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-0">
-                    <span class="sr-only">Edit</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-200 bg-white">
-                {#each stargazers as user}
-                  <tr>
-                    <td class="whitespace-nowrap py-4 pl-4 pr-3 sm:pl-0">
-                      <img src={user.avatar_url} alt={`${user.login}'s avatar`} class="h-10 w-10 rounded-full" />
-                    </td>
-                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      <a href={user.html_url} target="_blank" class="text-indigo-600 hover:text-indigo-900">
-                        {user.login}
-                      </a>
-                    </td>
-                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      {user.details.name || 'N/A'}
-                    </td>
-                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      {user.details.location || 'N/A'}
-                    </td>
-                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      {user.details.company || 'N/A'}
-                    </td>
-                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      {user.details.public_gists || 0}
-                    </td>
-                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      <img src={`https://ghchart.rshah.org/${user.login}`} alt="GitHub Activity" class="w-20 h-20" />
-                    </td>
-                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      {#if user.details.twitter_username}
-                        <a href={`https://twitter.com/${user.details.twitter_username}`} target="_blank" class="text-blue-500 hover:text-blue-700">
-                          @{user.details.twitter_username}
-                        </a>
-                      {:else}
-                        N/A
-                      {/if}
-                    </td>
-                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      {#if user.details.blog}
-                        <a href={user.details.blog} target="_blank" class="text-blue-500 hover:text-blue-700">
-                          Website
-                        </a>
-                      {:else}
-                        N/A
-                      {/if}
-                    </td>
-                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      {user.details.email || 'N/A'}
-                    </td>
-                    <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
-                      <a href="#" class="text-indigo-600 hover:text-indigo-900">Edit<span class="sr-only">, {user.login}</span></a>
-                    </td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
-          {/if}
-        </div>
-      </div>
-    </div>
-
-    <!-- Additional Components -->
+  {:else if error}
+    <ErrorAlert message={error} />
+  {:else}
+    <!-- FilterPanel, DownloadButton, and Table Components -->
     <FilterPanel />
-    <PaginationControls />
-    <RateLimitInfo />
+    <DownloadButton />
+
+    <!-- Table rendering -->
+    <table class="min-w-full divide-y divide-gray-200 mt-4">
+      <thead>
+        <tr>
+          <th class="px-3 py-2 text-left">Avatar</th>
+          <th class="px-3 py-2 text-left">Username</th>
+          <th class="px-3 py-2 text-left">Name</th>
+          <th class="px-3 py-2 text-left">Location</th>
+          <th class="px-3 py-2 text-left">Company</th>
+          <th class="px-3 py-2 text-left">Total Stars</th>
+          <th class="px-3 py-2 text-left">Activity</th>
+          <th class="px-3 py-2 text-left">Twitter</th>
+          <th class="px-3 py-2 text-left">Website</th>
+          <th class="px-3 py-2 text-left">Email</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 bg-white">
+        {#each stargazers as user}
+          <tr>
+            <td class="whitespace-nowrap px-3 py-4">
+              <img src={user.avatar_url} alt="{user.login}'s avatar" class="h-10 w-10 rounded-full" />
+            </td>
+            <td class="whitespace-nowrap px-3 py-4">
+              <a href={user.html_url} target="_blank" class="text-indigo-600 hover:text-indigo-900">{user.login}</a>
+            </td>
+            <td class="whitespace-nowrap px-3 py-4">{user.details?.name || 'N/A'}</td>
+            <td class="whitespace-nowrap px-3 py-4">{user.details?.location || 'N/A'}</td>
+            <td class="whitespace-nowrap px-3 py-4">{user.details?.company || 'N/A'}</td>
+            <td class="whitespace-nowrap px-3 py-4">{user.details?.public_repos || 0}</td>
+            <td class="whitespace-nowrap px-3 py-4">
+              <img
+                src={`https://ghchart.rshah.org/${user.login}`}
+                alt="GitHub Activity"
+                class="w-20 h-20 cursor-pointer"
+                on:click={() => handleImageClick(`https://ghchart.rshah.org/${user.login}`)}
+              />
+            </td>
+            <td class="whitespace-nowrap px-3 py-4">
+              {#if user.details?.twitter_username}
+                <a
+                  href={`https://twitter.com/${user.details.twitter_username}`}
+                  target="_blank"
+                  class="text-blue-500 hover:text-blue-700"
+                >
+                  @{user.details.twitter_username}
+                </a>
+              {:else}
+                N/A
+              {/if}
+            </td>
+            <td class="whitespace-nowrap px-3 py-4">
+              {#if user.details?.blog}
+                <a
+                  href={user.details.blog.startsWith('http') ? user.details.blog : `http://${user.details.blog}`}
+                  target="_blank"
+                  class="text-blue-500 hover:text-blue-700"
+                >
+                  Website
+                </a>
+              {:else}
+                N/A
+              {/if}
+            </td>
+            <td class="whitespace-nowrap px-3 py-4">{user.details?.email || 'N/A'}</td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+
+    <PaginationControls on:paginate={handlePagination} />
   {/if}
-</div>
+{:else}
+  <p>Please enter a valid repository URL to view stargazers.</p>
+{/if}
+
+{#if showModal}
+  <Modal on:close={closeModal}>
+    <div class="flex justify-between items-center">
+      <h2 class="text-lg font-semibold">GitHub Activity</h2>
+      <button on:click={closeModal} class="text-red-500">Close</button>
+    </div>
+    <img src={selectedImage} alt="GitHub Activity" class="max-w-full h-auto" />
+  </Modal>
+{/if}

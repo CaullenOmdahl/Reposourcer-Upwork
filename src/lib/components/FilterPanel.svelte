@@ -1,7 +1,6 @@
-<!-- src/lib/components/FilterPanel.svelte -->
 <script>
-  import { filtersStore } from '../stores/filtersStore';
   import { createEventDispatcher } from 'svelte';
+  import { filtersStore } from '../stores/filtersStore';
   import ErrorAlert from './ErrorAlert.svelte';
 
   let location = '';
@@ -11,14 +10,11 @@
   const dispatch = createEventDispatcher();
 
   const updateFilters = () => {
-    // Simple validation: Location should not contain special characters
-    const locationPattern = /^[a-zA-Z\s]*$/;
-    if (location && !locationPattern.test(location)) {
-      filterError = 'Location can only contain letters and spaces.';
+    if (location && location.length > 100) {
+      filterError = 'Location is too long. Maximum 100 characters allowed.';
       return;
     }
 
-    // If validation passes
     filterError = '';
     filtersStore.set({ location, hasEmail });
     dispatch('filtersUpdated');
@@ -36,6 +32,7 @@
         bind:value={location}
         placeholder="e.g., San Francisco"
         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+        aria-label="Filter by location"
       />
     </div>
     <div class="flex items-center">
@@ -44,6 +41,7 @@
         id="hasEmail"
         bind:checked={hasEmail}
         class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+        aria-label="Filter by email availability"
       />
       <label for="hasEmail" class="ml-2 block text-sm text-gray-900">
         Has Email

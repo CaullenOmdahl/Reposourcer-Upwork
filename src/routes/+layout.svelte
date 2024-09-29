@@ -1,7 +1,7 @@
-<!-- src/routes/+layout.svelte -->
 <script>
     import APIKeyManagement from '$lib/components/APIKeyManagement.svelte';
     import '../app.css';
+    import RateLimitInfo from '$lib/components/RateLimitInfo.svelte';
   </script>
   
   <div class="min-h-screen bg-gray-100 p-4">
@@ -12,5 +12,8 @@
     <main>
       <slot />
     </main>
+    <footer>
+      <RateLimitInfo />
+    </footer>
   </div>
   

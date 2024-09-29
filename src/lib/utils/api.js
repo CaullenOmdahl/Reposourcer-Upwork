@@ -1,9 +1,13 @@
 // src/lib/utils/api.js
 import axios from 'axios';
+import { get } from 'svelte/store';
+import { apiKeyStore } from '../stores/apiKeyStore';
+import { Octokit } from '@octokit/rest';
+import { rateLimitStore } from '../stores/rateLimitStore';
 
-// Use Axios to fetch stargazers from GitHub
 export async function fetchStargazers(owner, repo, page = 1, per_page = 30) {
   try {
+    const apiKey = get(apiKeyStore);
     const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/stargazers`, {
       params: {
         page,
@@ -11,28 +15,38 @@ export async function fetchStargazers(owner, repo, page = 1, per_page = 30) {
       },
       headers: {
         Accept: 'application/vnd.github.v3+json',
+        Authorization: `token ${apiKey}`,
       },
     });
 
     return response.data;
   } catch (error) {
     console.error(`Error in fetchStargazers: ${error.message}`);
-    throw error; // Propagate the error to be handled upstream
+    throw error;
   }
 }
 
-// Fetch rate limit information from GitHub API using Axios
 export async function fetchRateLimit() {
+  const apiKey = get(apiKeyStore);
+
+  if (!apiKey) {
+    throw new Error('API key is not set. Please provide a valid GitHub API key.');
+  }
+
+  const octokit = new Octokit({
+    auth: apiKey,
+  });
+
   try {
-    const response = await axios.get("https://api.github.com/rate_limit", {
+    const response = await octokit.request('GET /rate_limit', {
       headers: {
-        Accept: "application/vnd.github.v3+json",
+        'X-GitHub-Api-Version': '2022-11-28',
       },
     });
 
-    return response.data.rate; // Adjust based on the structure of the response
+    rateLimitStore.set(response.data.resources);
   } catch (error) {
-    console.error(`Error in fetchRateLimit: ${error.message}`);
-    throw error; // Propagate the error to be handled upstream
+    console.error('Error fetching rate limit:', error);
+    throw error;
   }
 }
