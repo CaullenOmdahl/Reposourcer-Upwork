@@ -20,8 +20,7 @@ export async function GET({ params, url }) {
     let data = await redis.get(cacheKey);
 
     if (data) {
-      // Data is in cache
-      data = JSON.parse(data);
+      // Data is in cache; data is already an object
     } else {
       // Data not in cache, fetch from GitHub API
       const octokit = new Octokit({
@@ -72,7 +71,7 @@ export async function GET({ params, url }) {
       };
 
       // Cache the data with expiration of 4 hours
-      await redis.setex(cacheKey, 60 * 60 * 4, JSON.stringify(data));
+      await redis.setex(cacheKey, 60 * 60 * 4, data);
     }
 
     return new Response(JSON.stringify(data), {
