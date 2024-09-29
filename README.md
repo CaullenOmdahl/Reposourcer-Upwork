@@ -14,7 +14,7 @@
 
 ## Demo
 
-[Live Demo](https://starscope-demo.com)
+[Live Demo](https://starscope.caphe.media)
 
 ## Getting Started
 
