@@ -6,8 +6,6 @@ const initialState = {
   filteredData: [], // Store filtered stargazers here
   currentPage: 1,
   perPage: 25,
-  hasNextPage: false,
-  hasPrevPage: false,
   loading: false,
   error: null,
   owner: null,
@@ -19,7 +17,7 @@ export const stargazersStore = writable(initialState);
 export const setAllStargazers = (newData) => {
   stargazersStore.update((state) => ({
     ...state,
-    allData: newData,
+    allData: [...state.allData, ...newData], // Append new data
     loading: false,
     error: null,
   }));

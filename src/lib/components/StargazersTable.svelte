@@ -8,10 +8,9 @@
   import PaginationControls from './PaginationControls.svelte';
   import Modal from './Modal.svelte';
   import FilterPanel from './FilterPanel.svelte';
+  import { loadStargazers } from '../utils/fetchStargazers';
 
-  let allStargazers = [];
-  let filteredStargazers = [];
-  let locationOptions = [];
+  let stargazers = [];
   let loading = false;
   let error = '';
   let owner = null;
@@ -20,6 +19,9 @@
   let selectedImage = '';
   let currentPage = 1;
   let perPage = 25; // Default value, will be updated from the store
+  let pageInfo = null; // New variable for pagination info
+  let filteredStargazers = []; // Declare filteredStargazers
+  let locationOptions = []; // Initialize locationOptions
 
   let filters = {};
 
@@ -32,8 +34,7 @@
 
   // Subscribe to stargazersStore
   const unsubscribeStargazers = stargazersStore.subscribe((state) => {
-    allStargazers = state.allData || [];
-    filteredStargazers = state.filteredData || [];
+    stargazers = state.allData || [];
     loading = state.loading;
     error = state.error;
     owner = state.owner;
@@ -43,46 +44,42 @@
     updateLocationOptions();
   });
 
-  // Calculate the slice indices based on currentPage and perPage
-  $: startIdx = (currentPage - 1) * perPage;
-  $: endIdx = currentPage * perPage;
-
   /**
    * Applies filters to the complete list of stargazers.
    */
   function applyFilters() {
-    if (!allStargazers.length) {
+    if (!stargazers.length) {
       filteredStargazers = [];
       return;
     }
 
-    filteredStargazers = allStargazers.filter((user) => {
+    filteredStargazers = stargazers.filter((user) => {
       let matches = true;
 
       if (filters.location) {
         matches =
           matches &&
-          user.details?.location?.toLowerCase().includes(filters.location.toLowerCase());
+          user.location?.toLowerCase().includes(filters.location.toLowerCase());
       }
 
       if (filters.hasEmail) {
-        matches = matches && !!user.details?.email;
+        matches = matches && !!user.email;
       }
 
       if (filters.hasLocation) {
-        matches = matches && !!user.details?.location;
+        matches = matches && !!user.location;
       }
 
       if (filters.hasCompany) {
-        matches = matches && !!user.details?.company;
+        matches = matches && !!user.company;
       }
 
       if (filters.hasTwitter) {
-        matches = matches && !!user.details?.twitter_username;
+        matches = matches && !!user.twitter_username;
       }
 
       if (filters.hasWebsite) {
-        matches = matches && !!user.details?.blog;
+        matches = matches && !!user.blog;
       }
 
       return matches;
@@ -101,9 +98,9 @@
    */
   function updateLocationOptions() {
     const locationsSet = new Set();
-    allStargazers.forEach((user) => {
-      if (user.details?.location) {
-        locationsSet.add(user.details.location);
+    stargazers.forEach((user) => {
+      if (user.location) {
+        locationsSet.add(user.location);
       }
     });
     locationOptions = Array.from(locationsSet);
@@ -125,6 +122,19 @@
     showModal = false;
     selectedImage = '';
   };
+
+  /**
+   * Handles fetching the next page of stargazers.
+   */
+  const handleNextPage = async () => {
+    if (pageInfo?.hasNextPage) {
+      pageInfo = await loadStargazers(owner, repo, pageInfo.endCursor);
+    }
+  };
+
+  // Calculate indices for pagination
+  $: startIdx = (currentPage - 1) * perPage;
+  $: endIdx = startIdx + perPage;
 
   // Clean up subscriptions when the component is destroyed
   onDestroy(() => {
@@ -152,7 +162,7 @@
           <th class="px-3 py-2 text-left">Name</th>
           <th class="px-3 py-2 text-left">Location</th>
           <th class="px-3 py-2 text-left">Company</th>
-          <th class="px-3 py-2 text-left">Total Stars</th>
+          <th class="px-3 py-2 text-left">Total Repos</th>
           <th class="px-3 py-2 text-left">Activity</th>
           <th class="px-3 py-2 text-left">Twitter</th>
           <th class="px-3 py-2 text-left">Website</th>
@@ -163,17 +173,17 @@
         {#each filteredStargazers.slice(startIdx, endIdx) as user}
           <tr>
             <td class="whitespace-nowrap px-3 py-4">
-              <img src={user.avatar_url} alt="{user.login}'s avatar" class="h-10 w-10 rounded-full" />
+              <img src={user.avatarUrl} alt="{user.login}'s avatar" class="h-10 w-10 rounded-full" />
             </td>
             <td class="whitespace-nowrap px-3 py-4">
-              <a href={user.html_url} target="_blank" class="text-indigo-600 hover:text-indigo-900">
+              <a href={user.url} target="_blank" class="text-indigo-600 hover:text-indigo-900">
                 {user.login}
               </a>
             </td>
-            <td class="whitespace-nowrap px-3 py-4">{user.details?.name || 'N/A'}</td>
-            <td class="whitespace-nowrap px-3 py-4">{user.details?.location || 'N/A'}</td>
-            <td class="whitespace-nowrap px-3 py-4">{user.details?.company || 'N/A'}</td>
-            <td class="whitespace-nowrap px-3 py-4">{user.details?.public_repos || 0}</td>
+            <td class="whitespace-nowrap px-3 py-4">{user.name || 'N/A'}</td>
+            <td class="whitespace-nowrap px-3 py-4">{user.location || 'N/A'}</td>
+            <td class="whitespace-nowrap px-3 py-4">{user.company || 'N/A'}</td>
+            <td class="whitespace-nowrap px-3 py-4">{user.repositories?.totalCount || 0}</td>
             <td class="whitespace-nowrap px-3 py-4">
               <img
                 src={`https://ghchart.rshah.org/${user.login}`}
@@ -183,26 +193,22 @@
               />
             </td>
             <td class="whitespace-nowrap px-3 py-4">
-              {#if user.details?.twitter_username}
+              {#if user.twitterUsername}
                 <a
-                  href={`https://twitter.com/${user.details.twitter_username}`}
+                  href={`https://twitter.com/${user.twitterUsername}`}
                   target="_blank"
                   class="text-blue-500 hover:text-blue-700"
                 >
-                  @{user.details.twitter_username}
+                  @{user.twitterUsername}
                 </a>
               {:else}
                 N/A
               {/if}
             </td>
             <td class="whitespace-nowrap px-3 py-4">
-              {#if user.details?.blog}
+              {#if user.websiteUrl}
                 <a
-                  href={
-                    user.details.blog.startsWith('http')
-                      ? user.details.blog
-                      : `http://${user.details.blog}`
-                  }
+                  href={user.websiteUrl.startsWith('http') ? user.websiteUrl : `http://${user.websiteUrl}`}
                   target="_blank"
                   class="text-blue-500 hover:text-blue-700"
                 >
@@ -212,14 +218,14 @@
                 N/A
               {/if}
             </td>
-            <td class="whitespace-nowrap px-3 py-4">{user.details?.email || 'N/A'}</td>
+            <td class="whitespace-nowrap px-3 py-4">{user.email || 'N/A'}</td>
           </tr>
         {/each}
       </tbody>
     </table>
 
     <!-- Pagination Controls -->
-    <PaginationControls />
+    <PaginationControls {pageInfo} onNextPage={handleNextPage} />
   {/if}
 {:else}
   <p>Please enter a valid repository URL to view stargazers.</p>

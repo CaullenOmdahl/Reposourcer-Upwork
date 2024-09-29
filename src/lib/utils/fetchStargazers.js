@@ -1,15 +1,11 @@
 // src/lib/utils/fetchStargazers.js
-import { setAllStargazers, setLoading, setError, setFilteredStargazers, updateCurrentPage } from '../stores/stargazersStore';
+
+import { setAllStargazers, setLoading, setError, setFilteredStargazers } from '../stores/stargazersStore';
 import axios from 'axios';
 import { get } from 'svelte/store';
 import { apiKeyStore } from '../stores/apiKeyStore';
 
-/**
- * Fetches all stargazers for a given repository and updates the store.
- * @param {string} owner - The repository owner's username.
- * @param {string} repo - The repository name.
- */
-export async function loadStargazers(owner, repo) {
+export async function loadStargazers(owner, repo, cursor = null) {
   if (!owner || !repo) {
     setError('Owner and repository name must be provided.');
     setLoading(false);
@@ -19,10 +15,7 @@ export async function loadStargazers(owner, repo) {
   setLoading(true);
   setError(null);
 
-  let allStargazers = [];
-  let page = 1;
-  const per_page = 100; // GitHub API maximum per_page value
-
+  const per_page = 100; // Number of stargazers per page
   const apiKey = get(apiKeyStore);
 
   if (!apiKey) {
@@ -32,33 +25,27 @@ export async function loadStargazers(owner, repo) {
   }
 
   try {
-    while (true) {
-      const response = await axios.get(`/api/stargazers/${owner}/${repo}`, {
-        params: {
-          page,
-          per_page,
-        },
-        headers: {
-          Authorization: `token ${apiKey}`,
-        },
-      });
+    const response = await axios.get(`/api/stargazers/${owner}/${repo}`, {
+      params: {
+        per_page,
+        cursor,
+      },
+      headers: {
+        Authorization: `token ${apiKey}`,
+      },
+    });
 
-      const data = response.data;
-      allStargazers = allStargazers.concat(data.stargazers);
+    const data = response.data;
 
-      if (data.hasNextPage) {
-        page += 1;
-      } else {
-        break;
-      }
-    }
+    // Update the store with fetched stargazers
+    setAllStargazers(data.stargazers);
+    setFilteredStargazers(data.stargazers);
 
-    // Update the store with all stargazers
-    setAllStargazers(allStargazers);
-    setFilteredStargazers(allStargazers); // Initially, no filters applied
-    updateCurrentPage(1);
+    // Return pageInfo for further pagination
+    return data.pageInfo;
+
   } catch (error) {
-    console.error('Error fetching all stargazers:', error);
+    console.error('Error fetching stargazers:', error);
     setError(error.response?.data?.error || 'Failed to fetch stargazers.');
   } finally {
     setLoading(false);

@@ -1,15 +1,17 @@
 // src/routes/api/stargazers/[owner]/[repo]/+server.js
 
-import { Octokit } from '@octokit/rest';
 import { graphql } from '@octokit/graphql';
 import { redis } from '$lib/server/utils/redis';
 
-export async function GET({ params, request }) {
+export async function GET({ params, url, request }) {
   const { owner, repo } = params;
+
+  // Extract query parameters
+  const perPage = parseInt(url.searchParams.get('per_page')) || 100;
+  const cursor = url.searchParams.get('cursor') || null;
 
   // Extract API Key from headers
   const authHeader = request.headers.get('Authorization');
-
   if (!authHeader) {
     return new Response(JSON.stringify({ error: 'GitHub API Key is missing in headers.' }), {
       status: 401,
@@ -19,7 +21,6 @@ export async function GET({ params, request }) {
 
   const tokenMatch = authHeader.match(/token\s+(.+)/i);
   const apiKey = tokenMatch ? tokenMatch[1] : null;
-
   if (!apiKey) {
     return new Response(JSON.stringify({ error: 'Invalid GitHub API Key format.' }), {
       status: 401,
@@ -27,87 +28,71 @@ export async function GET({ params, request }) {
     });
   }
 
-  const cacheKey = `stargazers:${owner}:${repo}`;
-
   try {
-    // Check if data is in cache
-    let cachedData = await redis.get(cacheKey);
-
-    if (cachedData) {
-      const data = JSON.parse(cachedData);
-      return new Response(JSON.stringify(data), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Fetch data using GraphQL
+    // Create GraphQL client
     const graphqlWithAuth = graphql.defaults({
       headers: {
         authorization: `token ${apiKey}`,
       },
     });
 
-    let hasNextPage = true;
-    let endCursor = null;
-    const allStargazers = [];
-
-    while (hasNextPage) {
-      const query = `
-        query ($owner: String!, $name: String!, $after: String) {
-          repository(owner: $owner, name: $name) {
-            stargazers(first: 100, after: $after) {
-              pageInfo {
-                endCursor
-                hasNextPage
-              }
-              nodes {
-                login
-                name
-                avatarUrl
-                url
-                company
-                email
-                location
-                websiteUrl
-                twitterUsername
-                repositories {
-                  totalCount
-                }
+    // Build GraphQL query
+    const query = `
+      query ($owner: String!, $name: String!, $after: String, $first: Int!) {
+        repository(owner: $owner, name: $name) {
+          stargazers(first: $first, after: $after) {
+            pageInfo {
+              endCursor
+              hasNextPage
+            }
+            nodes {
+              login
+              name
+              avatarUrl
+              url
+              company
+              email
+              location
+              websiteUrl
+              twitterUsername
+              repositories {
+                totalCount
               }
             }
           }
         }
-      `;
+      }
+    `;
 
-      const variables = {
-        owner,
-        name: repo,
-        after: endCursor,
-      };
+    const variables = {
+      owner,
+      name: repo,
+      after: cursor,
+      first: perPage,
+    };
 
-      const response = await graphqlWithAuth(query, variables);
+    // Fetch data from GitHub API
+    const response = await graphqlWithAuth(query, variables);
 
-      const stargazersData = response.repository.stargazers.nodes;
-      allStargazers.push(...stargazersData);
+    const stargazersData = response.repository.stargazers.nodes;
+    const pageInfo = response.repository.stargazers.pageInfo;
 
-      hasNextPage = response.repository.stargazers.pageInfo.hasNextPage;
-      endCursor = response.repository.stargazers.pageInfo.endCursor;
-    }
+    // Prepare response data
+    const data = {
+      stargazers: stargazersData,
+      pageInfo,
+    };
 
-    const dataToCache = { stargazers: allStargazers };
-
-    // Cache the data with a 4-hour expiration
-    await redis.setex(cacheKey, 60 * 60 * 4, JSON.stringify(dataToCache));
-
-    return new Response(JSON.stringify(dataToCache), {
+    // Return response
+    return new Response(JSON.stringify(data), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
+
   } catch (error) {
     console.error('Error fetching stargazers:', error);
     return new Response(JSON.stringify({ error: error.message }), {
-      status: error.status || 500,
+      status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
   }
