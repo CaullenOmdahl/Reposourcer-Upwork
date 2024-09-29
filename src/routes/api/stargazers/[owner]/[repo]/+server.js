@@ -1,5 +1,6 @@
 // src/routes/api/stargazers/[owner]/[repo]/+server.js
 import { Octokit } from '@octokit/rest';
+import { graphql } from '@octokit/graphql';
 import { redis } from '$lib/server/utils/redis';
 
 export async function GET({ params, url }) {
@@ -22,45 +23,98 @@ export async function GET({ params, url }) {
     if (data) {
       // Data is in cache; data is already an object
     } else {
-      // Data not in cache, fetch from GitHub API
-      const octokit = new Octokit({
-        auth: process.env.GITHUB_API_KEY,
-      });
+      const token = process.env.GITHUB_API_KEY;
+      if (!token) {
+        return new Response(JSON.stringify({ error: 'GitHub API key is not set.' }), {
+          status: 500,
+        });
+      }
 
-      const response = await octokit.request('GET /repos/{owner}/{repo}/stargazers', {
+      // Fetch stargazers and their details using GraphQL
+      const query = `
+        query($owner: String!, $repo: String!, $first: Int!, $after: String) {
+          repository(owner: $owner, name: $repo) {
+            stargazers(first: $first, after: $after) {
+              pageInfo {
+                hasNextPage
+                hasPreviousPage
+                endCursor
+                startCursor
+              }
+              edges {
+                starredAt
+                node {
+                  login
+                  avatarUrl
+                  htmlUrl: url
+                  name
+                  location
+                  company
+                  email
+                  websiteUrl
+                  twitterUsername
+                  repositories {
+                    totalCount
+                  }
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const variables = {
         owner,
         repo,
-        page,
-        per_page,
+        first: per_page,
+        after: null,
+      };
+
+      // Calculate the cursor for pagination
+      if (page > 1) {
+        const cursorCacheKey = `stargazers:${owner}:${repo}:page:${page - 1}:endCursor`;
+        const previousEndCursor = await redis.get(cursorCacheKey);
+        if (previousEndCursor) {
+          variables.after = previousEndCursor;
+        }
+      }
+
+      const graphqlWithAuth = graphql.defaults({
         headers: {
-          Accept: 'application/vnd.github.v3+json',
+          authorization: `token ${token}`,
         },
       });
 
-      const stargazers = response.data;
+      const response = await graphqlWithAuth(query, variables);
 
-      // Fetch additional user details
-      const userDetailsPromises = stargazers.map(async (user) => {
-        const userDetails = await octokit.request('GET /users/{username}', {
-          username: user.login,
-        });
+      const stargazersData = response.repository.stargazers;
+      const stargazersWithDetails = stargazersData.edges.map((edge) => {
+        const user = edge.node;
         return {
-          ...user,
-          details: userDetails.data,
+          login: user.login,
+          avatar_url: user.avatarUrl,
+          html_url: user.htmlUrl,
+          details: {
+            name: user.name,
+            location: user.location,
+            company: user.company,
+            email: user.email,
+            blog: user.websiteUrl,
+            twitter_username: user.twitterUsername,
+            public_repos: user.repositories.totalCount,
+          },
         };
       });
 
-      const stargazersWithDetails = await Promise.all(userDetailsPromises);
+      // Pagination info
+      const hasNextPage = stargazersData.pageInfo.hasNextPage;
+      const hasPrevPage = stargazersData.pageInfo.hasPreviousPage;
+      const endCursor = stargazersData.pageInfo.endCursor;
 
-      // Parse Link header for pagination info
-      const linkHeader = response.headers.link;
-      let hasNextPage = false;
-      let hasPrevPage = false;
-
-      if (linkHeader) {
-        const parsed = parseLinkHeader(linkHeader);
-        hasNextPage = !!parsed.next;
-        hasPrevPage = !!parsed.prev;
+      // Cache the endCursor for pagination
+      if (endCursor) {
+        const cursorCacheKey = `stargazers:${owner}:${repo}:page:${page}:endCursor`;
+        await redis.setex(cursorCacheKey, 60 * 60 * 4, endCursor);
       }
 
       data = {
@@ -85,21 +139,4 @@ export async function GET({ params, url }) {
       headers: { 'Content-Type': 'application/json' },
     });
   }
-}
-
-// Helper function to parse the Link header
-function parseLinkHeader(header) {
-  const links = {};
-  const parts = header.split(',');
-
-  parts.forEach((part) => {
-    const section = part.split(';');
-    if (section.length !== 2) return;
-
-    const url = section[0].replace(/<(.*)>/, '$1').trim();
-    const name = section[1].replace(/rel="(.*)"/, '$1').trim();
-    links[name] = url;
-  });
-
-  return links;
 }
